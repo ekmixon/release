@@ -124,7 +124,7 @@ def _add_osd_rc_servicemonitor(gendoc):
 
 
 def _get_osd_rc_deployment_sidecars(context):
-    sidecars = list()
+    sidecars = []
 
     if context.private:
         sidecars.append({
@@ -178,8 +178,12 @@ def _add_osd_rc_deployment(gendoc):
 
     # Creating Cluster Groups for the AMD64 jobs...
     if context.arch == 'x86_64':
-        extra_rc_args.append('--cluster-group=build01,build02,build03')
-        extra_rc_args.append('--cluster-group=vsphere')
+        extra_rc_args.extend(
+            (
+                '--cluster-group=build01,build02,build03',
+                '--cluster-group=vsphere',
+            )
+        )
 
     gendoc.append({
         'apiVersion': 'apps/v1',

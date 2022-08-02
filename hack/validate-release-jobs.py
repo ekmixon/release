@@ -30,7 +30,10 @@ def read_release_definitions(path):
         for entry in entries:
             if entry.is_file():
                 with open(entry, 'r') as release:
-                    definitions.update({entry.name: json.load(release, object_pairs_hook=raise_on_duplicates)})
+                    definitions[entry.name] = json.load(
+                        release, object_pairs_hook=raise_on_duplicates
+                    )
+
     return definitions
 
 
@@ -38,10 +41,9 @@ def read_job_definitions(path):
     definitions = {}
     with os.scandir(path) as entries:
         for entry in entries:
-            if entry.is_file():
-                if entry.name.endswith('.yaml'):
-                    with open(entry, 'r') as release:
-                        definitions.update({entry.name: yaml.load(release, Loader=yaml.SafeLoader)})
+            if entry.is_file() and entry.name.endswith('.yaml'):
+                with open(entry, 'r') as release:
+                    definitions[entry.name] = yaml.load(release, Loader=yaml.SafeLoader)
     return definitions
 
 
@@ -51,8 +53,17 @@ def get_job_data(release_definitions):
         release = release_definitions[release_name]
         for job_type in 'verify', 'periodic':
             if job_type in release:
-                for release_verification_name in release[job_type]:
-                    data.append((release_name, release_verification_name, release[job_type][release_verification_name]['prowJob']['name']))
+                data.extend(
+                    (
+                        release_name,
+                        release_verification_name,
+                        release[job_type][release_verification_name][
+                            'prowJob'
+                        ]['name'],
+                    )
+                    for release_verification_name in release[job_type]
+                )
+
     return data
 
 

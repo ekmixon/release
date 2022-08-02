@@ -20,7 +20,7 @@ def load_config(directory):
                 with open(_path, 'r') as f:
                     _config = yaml.safe_load(f)
             except:
-                print('failed to load YAML from {}'.format(_path))
+                print(f'failed to load YAML from {_path}')
                 raise
             if 'zz_generated_metadata' not in _config:
                 continue
@@ -48,7 +48,7 @@ def load_step_registry(directory):
                 with open(_path, 'r') as f:
                     _config = yaml.safe_load(f)
             except:
-                print('failed to load YAML from {}'.format(_path))
+                print(f'failed to load YAML from {_path}')
                 raise
             if 'workflow' in _config:
                 if 'workflows' not in _step_registry:
@@ -64,9 +64,9 @@ def platform_stripped_workflows(repo_config, step_registry):
     for _jobs in repo_config.values():
         for _job, _steps in _jobs.items():
             if 'workflow' not in _steps:
-                raise KeyError('no workflow in {}: {}'.format(_job, _steps))
+                raise KeyError(f'no workflow in {_job}: {_steps}')
             if 'platform' not in _steps:
-                raise KeyError('no workflow in {}: {}'.format(_job, _steps))
+                raise KeyError(f'no workflow in {_job}: {_steps}')
             _platforms.add(_steps['platform'])
             _stripped_workflow = platform_stripped_workflow(workflow=_steps['workflow'], platform=_steps['platform'])
             if not _stripped_workflow:
@@ -88,12 +88,12 @@ def platform_stripped_workflows(repo_config, step_registry):
     if _unstrippable:
         print('unable to determine platform-agnostic workflows for:')
         for _workflow, _platforms in sorted(_unstrippable.items()):
-            print('  {}'.format(_workflow))
+            print(f'  {_workflow}')
             for _platform, _jobs in sorted(_platforms.items()):
                 _ellipsis = ''
                 if len(_jobs) > 3:
                     _ellipsis = ', ...'
-                print('    {} ({}{})'.format(_platform, ', '.join(sorted(_jobs)[:3]), _ellipsis))
+                print(f"    {_platform} ({', '.join(sorted(_jobs)[:3])}{_ellipsis})")
     return _stripped
 
 
@@ -108,16 +108,12 @@ def cluster_profile_platform(cluster_profile):
     """Translate from steps.cluster_profile to workflow.as slugs."""
     if cluster_profile == 'azure4':
         return 'azure'
-    if cluster_profile == 'packet':
-        return 'metal'
-    return cluster_profile
+    return 'metal' if cluster_profile == 'packet' else cluster_profile
 
 
 def platform_stripped_workflow(workflow, platform):
     _key = workflow.replace(platform, 'PLATFORM')
-    if 'PLATFORM' in _key:
-        return _key
-    return None
+    return _key if 'PLATFORM' in _key else None
 
 
 def get_prow_job_counts(uri, interesting_jobs):
@@ -133,7 +129,7 @@ def get_prow_job_counts(uri, interesting_jobs):
 
 
 def print_counts(counts, job_steps, job_org_repos, stripped_workflows, platform_specific_repositories):
-    print('{}\t{}\t{}\t{}\t{}'.format('count', 'platform', 'status', 'alternatives', 'job'))
+    print(f'count\tplatform\tstatus\talternatives\tjob')
     for _job, _count in sorted(counts.items(), key=lambda job_count: -job_count[1]):
         _steps = job_steps[_job]
         _stripped_workflow = platform_stripped_workflow(workflow=_steps['workflow'], platform=_steps['platform'])
@@ -144,7 +140,9 @@ def print_counts(counts, job_steps, job_org_repos, stripped_workflows, platform_
             continue
         else:
             _status = 'unknown'
-        print('{}\t{}\t{}\t{}\t{}'.format(_count, _steps['platform'], _status, ','.join(_alternative_platforms), _job))
+        print(
+            f"{_count}\t{_steps['platform']}\t{_status}\t{','.join(_alternative_platforms)}\t{_job}"
+        )
 
 
 def pivot_platform(jobs, from_platform, to_platform, stripped_workflows, job_files):
@@ -155,14 +153,14 @@ def pivot_platform(jobs, from_platform, to_platform, stripped_workflows, job_fil
             if from_platform in _job:  # not balanceable
                 continue
             if 'workflow' not in _steps:
-                raise KeyError('no workflow in {}: {}'.format(_job, _steps))
+                raise KeyError(f'no workflow in {_job}: {_steps}')
             if _steps['workflow'] != _alternatives[from_platform]:
                 continue
             try:
                 with open(job_files[_job], 'r') as f:
                     _config = yaml.safe_load(f)
             except:
-                print('failed to load YAML from {}'.format(job_files[_job]))
+                print(f'failed to load YAML from {job_files[_job]}')
                 raise
             for _test in _config['tests']:
                 _job_name = 'pull-ci-{org}-{repo}-{branch}-{test_as}'.format(test_as=_test['as'], **_config['zz_generated_metadata'])
@@ -194,11 +192,13 @@ if __name__ == '__main__':
     _step_registry = load_step_registry(directory=os.path.join('ci-operator', 'step-registry'))
     _stripped_workflows = platform_stripped_workflows(repo_config=_repo_config, step_registry=_step_registry)
     _balanceable_workflows = {workflow for workflow, platforms in _stripped_workflows.items() if len(platforms) > 1}
-    fixed_workflows = set(_stripped_workflows.keys()) - _balanceable_workflows
-    if fixed_workflows:
+    if (
+        fixed_workflows := set(_stripped_workflows.keys())
+        - _balanceable_workflows
+    ):
         print('workflows which need alternative platforms to support balancing:')
         for _workflow in sorted(fixed_workflows):
-            print('  {}'.format(list(_stripped_workflows[_workflow].values())[0]))
+            print(f'  {list(_stripped_workflows[_workflow].values())[0]}')
     _interesting_jobs = set(yield_interesting_jobs(job_steps=_job_steps, balanceable_workflows=_balanceable_workflows))
     _counts = get_prow_job_counts(uri='https://prow.ci.openshift.org/prowjobs.js', interesting_jobs=_interesting_jobs)
     _platform_specific_repositories = {

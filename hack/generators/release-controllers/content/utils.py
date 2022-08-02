@@ -138,43 +138,47 @@ def get_rc_volumes(context, namespace=None):
 
 
 def _get_dynamic_rc_volume_mounts(context):
-    prow_volume_mounts = []
-
-    for major_minor in context.config.releases:
-        prow_volume_mounts.append({
+    return [
+        {
             'mountPath': f'/etc/job-config/{major_minor}',
             'name': f'job-config-{major_minor.replace(".", "")}',  # e.g. job-config-45
-            'readOnly': True
-        })
-
-    return prow_volume_mounts
+            'readOnly': True,
+        }
+        for major_minor in context.config.releases
+    ]
 
 
 def _get_dynamic_deployment_volumes(context):
     prow_volumes = []
 
     if context.private:
-        prow_volumes.append({
-            'name': 'internal-tls',
-            'secret': {
-                'secretName': context.secret_name_tls,
-            }
-        })
-        prow_volumes.append({
-            'name': 'session-secret',
-            'secret': {
-                # clusters/app.ci/release-controller/admin_deploy-ocp-controller-session-secret.yaml
-                'secretName': 'release-controller-session-secret',
-            }
-        })
+        prow_volumes.extend(
+            (
+                {
+                    'name': 'internal-tls',
+                    'secret': {
+                        'secretName': context.secret_name_tls,
+                    },
+                },
+                {
+                    'name': 'session-secret',
+                    'secret': {
+                        # clusters/app.ci/release-controller/admin_deploy-ocp-controller-session-secret.yaml
+                        'secretName': 'release-controller-session-secret',
+                    },
+                },
+            )
+        )
 
-    for major_minor in context.config.releases:
-        prow_volumes.append({
+    prow_volumes.extend(
+        {
             'configMap': {
                 'defaultMode': 420,
-                'name': f'job-config-{major_minor}'
+                'name': f'job-config-{major_minor}',
             },
-            'name': f'job-config-{major_minor.replace(".", "")}'
-        })
+            'name': f'job-config-{major_minor.replace(".", "")}',
+        }
+        for major_minor in context.config.releases
+    )
 
     return prow_volumes

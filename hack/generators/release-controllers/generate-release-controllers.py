@@ -119,10 +119,7 @@ class Context:
         self.fc_app_url = f'{self.hostname_artifacts}.{self.config.rc_deployment_domain}'
 
     def get_supported_architecture_name(self):
-        name = 'amd64'
-        if self.arch not in ('amd64', 'x86_64'):
-            name = self.arch
-        return name
+        return self.arch if self.arch not in ('amd64', 'x86_64') else 'amd64'
 
 
 def generate_app_ci_content(config, git_clone_dir):

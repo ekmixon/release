@@ -2,14 +2,12 @@ import json, sys, yaml, os;
 
 def branch_to_stream(branch, variant):
   if branch == "master":
-    if variant == "rhel":
-      return ("ocp", "4.0")
-    return ("openshift", "origin-v4.0")
+    return ("ocp", "4.0") if variant == "rhel" else ("openshift", "origin-v4.0")
   if branch.startswith("release-"):
     version = branch[len("release-"):]
     if variant == "rhel":
       return ("ocp", version)
-    return ("openshift", "origin-v"+version)
+    return "openshift", f"origin-v{version}"
 
 def branch_tag_spec(existing, branch, variant):
   ns, name = branch_to_stream(branch, variant)
@@ -18,10 +16,9 @@ def branch_tag_spec(existing, branch, variant):
   return existing
 
 def branch_to_builder(existing, variant):
-  if existing:
-    if variant == "rhel":
-      existing["namespace"] = "ocp"
-      existing["name"] = "builder"
+  if existing and variant == "rhel":
+    existing["namespace"] = "ocp"
+    existing["name"] = "builder"
   return existing
 
 base = sys.argv[1]

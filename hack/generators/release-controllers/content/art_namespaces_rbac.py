@@ -12,21 +12,25 @@ def add_imagestream_namespace_rbac(gendoc):
             'name': 'system:authenticated'
         })
     else:
-        puller_subjects.append({
-            'apiGroup': 'rbac.authorization.k8s.io',
-            'kind': 'Group',
-            'name': 'openshift-priv-admins'
-        })
-        puller_subjects.append({
-            'apiGroup': 'rbac.authorization.k8s.io',
-            'kind': 'Group',
-            'name': 'qe'
-        })
-        puller_subjects.append({
-            'apiGroup': 'rbac.authorization.k8s.io',
-            'kind': 'Group',
-            'name': 'release-team'
-        })
+        puller_subjects.extend(
+            (
+                {
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'Group',
+                    'name': 'openshift-priv-admins',
+                },
+                {
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'Group',
+                    'name': 'qe',
+                },
+                {
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'Group',
+                    'name': 'release-team',
+                },
+            )
+        )
 
     resources.append({
         'apiVersion': 'rbac.authorization.k8s.io/v1',
@@ -333,17 +337,23 @@ def add_imagestream_namespace_rbac(gendoc):
         }
     })
 
-    resources.append({
-        'apiVersion': 'v1',
-        'kind': 'ServiceAccount',
-        'metadata': {
-            'annotations': {} if not context.private else {
-                f'serviceaccounts.openshift.io/oauth-redirectreference.{context.rc_serviceaccount_name}': '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"%s"}}' % context.rc_route_name
+    resources.append(
+        {
+            'apiVersion': 'v1',
+            'kind': 'ServiceAccount',
+            'metadata': {
+                'annotations': {
+                    f'serviceaccounts.openshift.io/oauth-redirectreference.{context.rc_serviceaccount_name}': '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"%s"}}'
+                    % context.rc_route_name
+                }
+                if context.private
+                else {},
+                'name': context.rc_serviceaccount_name,
+                'namespace': context.config.rc_deployment_namespace,
             },
-            'name': context.rc_serviceaccount_name,
-            'namespace': context.config.rc_deployment_namespace,
         }
-    })
+    )
+
 
     if context.private:
         resources.append({

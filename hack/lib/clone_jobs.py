@@ -13,7 +13,7 @@ def duplicate_job(job, from_branch, to_branch):
       if "master" in name:
         n['name'] = name.replace("master", to_branch)
       else:
-        n['name'] = name + "-" + to_branch
+        n['name'] = f"{name}-{to_branch}"
       return [n]
   return []
 
@@ -33,5 +33,5 @@ for t in ['postsubmits','presubmits']:
       y[t][repo] = newjobs
 if count > 0:
   out = yaml.dump(y, default_flow_style=False, Dumper=yaml.RoundTripDumper)
-  out = out.replace(from_branch+'.yaml', to_branch+'.yaml')
+  out = out.replace(f'{from_branch}.yaml', f'{to_branch}.yaml')
   print(out)

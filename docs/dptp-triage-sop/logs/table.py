@@ -25,7 +25,7 @@ for item in data:
 				raw_entry.pop("level", ""),
 				raw_entry.pop("component", ""),
 			]
-			
+
 			message = "msg=" + raw_entry.pop("msg", "")
 			if "error" in raw_entry:
 				message += ", error=" + raw_entry.pop("error", "")
@@ -34,14 +34,12 @@ for item in data:
 			entry.append(raw_entry.pop("file", ""))
 			entry.append(raw_entry.pop("func", ""))
 
-			fields = []
-			for key, value in sorted(raw_entry.items()):
-				fields.append("{}={}".format(key, value))
+			fields = [f"{key}={value}" for key, value in sorted(raw_entry.items())]
 			entry.append(",".join(fields))
 			entries.append(entry)
 
 width = os.get_terminal_size().columns
-largest = [0 for e in headers[:3]]
+largest = [0 for _ in headers[:3]]
 for entry in entries:
 	for i in range(len(entry[:3])):
 		if len(entry[i]) > largest[i]:
@@ -58,14 +56,14 @@ for entry in entries:
 	truncated_entry = []
 	for item in entry[:4]:
 		if len(item) > width:
-			bound = int(width/2)
-			truncated_entry.append(item[0:bound] + " ... " + item[-bound:])
+			bound = width // 2
+			truncated_entry.append(item[:bound] + " ... " + item[-bound:])
 		else:
 			truncated_entry.append(item)
 	truncated_entries.append(truncated_entry)
 
 print(tabulate(truncated_entries, headers=headers))
 
-with open(sys.argv[1] + ".table", "w+") as raw:
+with open(f"{sys.argv[1]}.table", "w+") as raw:
 	raw.write(tabulate(entries, headers=headers))
-	print("Wrote full table to " + sys.argv[1] + ".table")
+	print(f"Wrote full table to {sys.argv[1]}.table")

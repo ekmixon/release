@@ -6,7 +6,7 @@ target_branch = sys.argv[2] if len(sys.argv) > 2 else "master"
 for root, dirs, files in os.walk(base):
   rel = root[len(base):]
   parts = rel.split("/")
-  repo_prefix = "-".join(parts[:len(parts)]) + "-"
+  repo_prefix = "-".join(parts[:]) + "-"
   if len(parts) > 1:
     org, repo = parts[0], parts[1]
   last = parts[len(parts)-1]
@@ -18,11 +18,7 @@ for root, dirs, files in os.walk(base):
       continue
     branch_modifier = filename[len(repo_prefix):]
     parts = branch_modifier.split("_")
-    if len(parts) > 1:
-      branch, variant = parts
-    else:
-      branch, variant = branch_modifier, ""
-
+    branch, variant = parts if len(parts) > 1 else (branch_modifier, "")
     if branch != target_branch:
       continue
 
@@ -37,4 +33,6 @@ for root, dirs, files in os.walk(base):
     for image in cfg.get("images", []):
       if image.get("optional", False):
         continue
-      print("github.com/%s/%s: name=%s context=%s path=%s" % (org, repo, image["to"], image.get("context_dir", ""), image.get("dockerfile_path", "Dockerfile")))
+      print(
+          f'github.com/{org}/{repo}: name={image["to"]} context={image.get("context_dir", "")} path={image.get("dockerfile_path", "Dockerfile")}'
+      )

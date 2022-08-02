@@ -21,14 +21,17 @@ def load_jobs_from_directory(directory):
             try:
                 jobs.extend(load_jobs_from_stream(stream=f, path=path))
             except Exception as error:
-                raise ValueError('failed to load jobs from {}'.format(path)) from error
+                raise ValueError(f'failed to load jobs from {path}') from error
     return jobs
 
 
 def load_jobs_from_stream(stream, path):
     documents = list(yaml.safe_load_all(stream))
     if len(documents) != 1:
-        raise ValueError('{} YAML documents; only one document is supported'.format(len(documents)))
+        raise ValueError(
+            f'{len(documents)} YAML documents; only one document is supported'
+        )
+
     for job_type, type_data in documents[0].items():
         if job_type == 'periodics':
             for job in type_data:
@@ -55,11 +58,10 @@ def unify_jobs(jobs, suspect_branches=None):
         if branch not in suspect_branches:
             continue  # master is a source of canonical data
 
-        siblings = get_siblings(job=job, jobs=jobs, suspect_branches=suspect_branches)
-        if not siblings:
-            continue
-
-        unify_job(job=job, siblings=siblings)
+        if siblings := get_siblings(
+            job=job, jobs=jobs, suspect_branches=suspect_branches
+        ):
+            unify_job(job=job, siblings=siblings)
 
 
 def job_branch_context(job):
@@ -68,13 +70,12 @@ def job_branch_context(job):
     except IndexError as error:
         raise ValueError('job has no branch') from error
     if branch.startswith('release-3.') or branch in {'release-4.1', 'release-4.2', 'release-4.3', 'release-4.4', 'release-4.5'}:
-        raise ValueError('{} is ancient'.format(branch))
+        raise ValueError(f'{branch} is ancient')
 
-    context = job.get('context')
-    if not context:
+    if context := job.get('context'):
+        return (branch, context)
+    else:
         raise ValueError('job has no context')
-
-    return (branch, context)
 
 
 def get_siblings(job, jobs, suspect_branches):
@@ -114,15 +115,17 @@ def unify_job(job, siblings, mutable_properties=None):
     for prop in mutable_properties:
         sibling_values = {json.dumps(sibling.get(prop), sort_keys=True) for sibling in siblings.values()}
         if len(sibling_values) > 1:
-            print('cannot unify {} for {} {}.  Sibling values include:'.format(prop, branch, context))
+            print(f'cannot unify {prop} for {branch} {context}.  Sibling values include:')
             for sibling_branch, sibling in sorted(siblings.items()):
                 print('  {}: {}'.format(sibling_branch, json.dumps(sibling.get(prop), sort_keys=True)))
         elif len(sibling_values) == 1:
             sibling_value = list(sibling_values)[0]
             value = json.dumps(job.get(prop), sort_keys=True)
             if value != sibling_value:
-                print('{} {}: change {} from {} to {} to match siblings'.format(
-                    branch, context, prop, value, sibling_value))
+                print(
+                    f'{branch} {context}: change {prop} from {value} to {sibling_value} to match siblings'
+                )
+
                 job[prop] = json.loads(sibling_value)
                 updated = True
     if updated:

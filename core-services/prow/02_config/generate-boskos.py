@@ -117,11 +117,11 @@ CONFIG = {
 
 for i in range(2):
     for j in range(5):
-        CONFIG['libvirt-s390x-quota-slice']['libvirt-s390x-{}-{}'.format(i, j)] = 1
+        CONFIG['libvirt-s390x-quota-slice'][f'libvirt-s390x-{i}-{j}'] = 1
 
 for i in range(3):
     for j in range(4):
-        CONFIG['libvirt-ppc64le-quota-slice']['libvirt-ppc64le-{}-{}'.format(i, j)] = 1
+        CONFIG['libvirt-ppc64le-quota-slice'][f'libvirt-ppc64le-{i}-{j}'] = 1
 # Reserve one for internal debugging use
 del CONFIG['libvirt-ppc64le-quota-slice']['libvirt-ppc64le-1-3']
 
@@ -132,19 +132,19 @@ for i in range(4):
     CONFIG['openstack-ppc64le-quota-slice']['openstack-ppc64le-{0:0>2}'.format(i)] = 1
 
 for i in range(10, 24):
-    CONFIG['ovirt-quota-slice']['ovirt-{}'.format(i)] = 1
+    CONFIG['ovirt-quota-slice'][f'ovirt-{i}'] = 1
 
 for i in range(1, 7):
-    CONFIG['ovirt-upgrade-quota-slice']['ovirt-upgrade-{}'.format(i)] = 1
+    CONFIG['ovirt-upgrade-quota-slice'][f'ovirt-upgrade-{i}'] = 1
 
 for i in range(1, 3):
-    CONFIG['kubevirt-quota-slice']['tenant-cluster-{}'.format(i)] = 1
+    CONFIG['kubevirt-quota-slice'][f'tenant-cluster-{i}'] = 1
 
 for i in range(75,94):
-    CONFIG['vsphere-quota-slice']['ci-segment-{}'.format(i)] = 1
+    CONFIG['vsphere-quota-slice'][f'ci-segment-{i}'] = 1
 
 for i in range(60,62):
-    CONFIG['vsphere-discon-quota-slice']['qe-discon-segment-{}'.format(i)] = 1
+    CONFIG['vsphere-discon-quota-slice'][f'qe-discon-segment-{i}'] = 1
 
 config = {
     'resources': [],

@@ -43,27 +43,33 @@ def main():
         'PULL_AUTHOR': pull_author}
     if not cmd:
         for k, v in var.items():
-            print('export {}={}'.format(k, shlex.quote(v)))
+            print(f'export {k}={shlex.quote(v)}')
     else:
         os.environ.update(var)
         sys.exit(subprocess.call(cmd))
 
 
 def get_refs(repo, base_ref, pull_number):
-    base_ref = 'refs/heads/{}'.format(base_ref)
-    pull_number = 'refs/pull/{}/head'.format(pull_number)
-    out = subprocess.check_output((
-        'git', 'ls-remote',
-        'https://github.com/' + repo,
-        base_ref, pull_number))
+    base_ref = f'refs/heads/{base_ref}'
+    pull_number = f'refs/pull/{pull_number}/head'
+    out = subprocess.check_output(
+        (
+            'git',
+            'ls-remote',
+            f'https://github.com/{repo}',
+            base_ref,
+            pull_number,
+        )
+    )
+
     refs = dict(x.split('\t')[::-1] for x in out.decode('utf-8').splitlines())
     base_sha = refs.get(base_ref)
     pull_sha = refs.get(pull_number)
     if base_sha is None:
-        print('Base ref {} not found'.format(base_ref), file=sys.stderr)
+        print(f'Base ref {base_ref} not found', file=sys.stderr)
         return None
     if pull_sha is None:
-        print('Pull request {} not found'.format(pull_number), file=sys.stderr)
+        print(f'Pull request {pull_number} not found', file=sys.stderr)
         return None
     return base_sha, pull_sha
 

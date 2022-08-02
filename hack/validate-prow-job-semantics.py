@@ -35,7 +35,7 @@ def main():
         validate_pod_name,
         validate_resources,
     )
-    validate = lambda funcs, *args: all([f(*args) for f in funcs])
+    validate = lambda funcs, *args: all(f(*args) for f in funcs)
     failed = False
     args = parse_args()
     logger.setLevel(getattr(logging, args.log_level.upper()))
@@ -69,7 +69,7 @@ def parse_org_repo(path):
 def validate_filename(path):
     org_dir, repo_dir = parse_org_repo(path)
     base = os.path.basename(path)
-    if not base.startswith("{}-{}-".format(org_dir, repo_dir)):
+    if not base.startswith(f"{org_dir}-{repo_dir}-"):
         logger.error("%s: expected filename to start with %s-%s", path, org_dir, repo_dir)
         return False
 
@@ -78,15 +78,13 @@ def validate_filename(path):
         logger.error("%s: expected filename to end with a job type", path)
         return False
 
-    if job_type == "periodics":
-        branch = base[len("{}-{}-".format(org_dir, repo_dir)):-len("-{}.yaml".format(job_type))]
-        if branch == "":
-            if base != "{}-{}-{}.yaml".format(org_dir, repo_dir, job_type):
+    branch = base[len(f"{org_dir}-{repo_dir}-"):-len(f"-{job_type}.yaml")]
+    if branch == "":
+        if job_type == "periodics":
+            if base != f"{org_dir}-{repo_dir}-{job_type}.yaml":
                 logger.error("%s: Invalid formatting in filename: expected filename format $org-$repo-periodics.yaml", path)
                 return False
-    else:
-        branch = base[len("{}-{}-".format(org_dir, repo_dir)):-len("-{}.yaml".format(job_type))]
-        if branch == "":
+        else:
             logger.error("%s: Invalid formatting in filename: expected filename format org-repo-branch-(pre|post)submits.yaml", path)
             return False
 
@@ -109,12 +107,12 @@ def validate_job_repo(path, data):
     org, repo = parse_org_repo(path)
     if "presubmits" in data:
         for org_repo in data["presubmits"]:
-            if org_repo != "{}/{}".format(org, repo):
+            if org_repo != f"{org}/{repo}":
                 logger.error("%s: file defines jobs for %s, but is only allowed to contain jobs for %s/%s", path, org_repo, org, repo)
                 return False
     if "postsubmits" in data:
         for org_repo in data["postsubmits"]:
-            if org_repo != "{}/{}".format(org, repo):
+            if org_repo != f"{org}/{repo}":
                 logger.error("%s: file defines jobs for %s, but is only allowed to contain jobs for %s/%s", path, org_repo, org, repo)
                 return False
 
@@ -131,7 +129,11 @@ def validate_names(path, data):
                 if job["agent"] != "kubernetes":
                     continue
 
-                if (not "command" in job["spec"]["containers"][0].keys()) or (job["spec"]["containers"][0]["command"][0] != "ci-operator"):
+                if (
+                    "command" not in job["spec"]["containers"][0].keys()
+                    or job["spec"]["containers"][0]["command"][0]
+                    != "ci-operator"
+                ):
                     continue
 
                 if ("labels" in job) and ("ci-operator.openshift.io/semantics-ignored" in job["labels"]) and job["labels"]["ci-operator.openshift.io/semantics-ignored"] == "true":
@@ -142,10 +144,12 @@ def validate_names(path, data):
                     logger.info("%s: ci-operator job %s is ignored because it's generated and assumed to be right", path, job["name"])
                     continue
 
-                targets = []
-                for arg in job["spec"]["containers"][0].get("args", []) + job["spec"]["containers"][0]["command"]:
-                    if arg.startswith("--target="):
-                        targets.append(arg[len("--target="):].strip("[]"))
+                targets = [
+                    arg[len("--target=") :].strip("[]")
+                    for arg in job["spec"]["containers"][0].get("args", [])
+                    + job["spec"]["containers"][0]["command"]
+                    if arg.startswith("--target=")
+                ]
 
                 if not targets:
                     logger.warning("%s: ci-operator job %s should call a target", path, job["name"])
@@ -172,9 +176,9 @@ def validate_names(path, data):
                 valid_names = {}
                 for target in filtered_targets:
                     if variant:
-                        target = variant + "-" + target
+                        target = f"{variant}-{target}"
                     for prefix in prefixes:
-                        name = "{}-ci-{}-{}-{}".format(prefix, repo.replace("/", "-"), branch, target)
+                        name = f'{prefix}-ci-{repo.replace("/", "-")}-{branch}-{target}'
                         valid_names[name] = target
 
                 if job["name"] not in valid_names:
@@ -184,17 +188,17 @@ def validate_names(path, data):
                 name_target = valid_names[job["name"]]
 
                 if job_type == "presubmits":
-                    valid_context = "ci/prow/{}".format(name_target)
+                    valid_context = f"ci/prow/{name_target}"
                     if job["context"] != valid_context:
                         logger.error("%s: ci-operator job %s should have context %s", path, job["name"], valid_context)
                         out = False
 
-                    valid_rerun_command = "/test {}".format(name_target)
+                    valid_rerun_command = f"/test {name_target}"
                     if job["rerun_command"] != valid_rerun_command:
                         logger.error("%s: ci-operator job %s should have rerun_command %s", path, job["name"], valid_rerun_command)
                         out = False
 
-                    valid_trigger = r"(?m)^/test( | .* ){},?($|\s.*)".format(name_target)
+                    valid_trigger = f"(?m)^/test( | .* ){name_target},?($|\s.*)"
                     if job["trigger"] != valid_trigger:
                         logger.error("%s: ci-operator job %s should have trigger %s", path, job["name"], valid_trigger)
                         out = False
@@ -218,7 +222,12 @@ def validate_sharding(path, data):
                 if "branches" in job:
                     branch = make_regex_filename_label(job["branches"][0])
 
-                file_branch = os.path.basename(path)[len("{}-".format(repo.replace("/", "-"))):-len("-{}.yaml".format(job_type))]
+                file_branch = os.path.basename(path)[
+                    len(f'{repo.replace("/", "-")}-') : -len(
+                        f"-{job_type}.yaml"
+                    )
+                ]
+
                 if file_branch != branch:
                     logger.error("%s: job %s runs on branch %s, not %s so it should be in file %s", path, job["name"], branch, file_branch, path.replace(file_branch, branch))
                     out = False
@@ -272,7 +281,7 @@ def validate_resources(path, data):
                 if job["agent"] != "kubernetes":
                     continue
 
-                if not "command" in job["spec"]["containers"][0].keys():
+                if "command" not in job["spec"]["containers"][0].keys():
                     continue
 
                 ci_op_job = job["spec"]["containers"][0]["command"][0] == "ci-operator"

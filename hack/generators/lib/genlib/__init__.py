@@ -53,7 +53,7 @@ class GenDoc():
                 y = y[0]['items']
 
         with path.open(mode='w+') as f:
-            print('Rewrote: ' + str(path))
+            print(f'Rewrote: {str(path)}')
             yaml.dump_all(y, f, default_flow_style=False)
 
     def _add_comment(self, line):
@@ -61,9 +61,9 @@ class GenDoc():
         if index in self.comments:
             l = self.comments[index]
         else:
-            l = list()
+            l = []
             self.comments[index] = l
-        l.append('# ' + line + '\n')
+        l.append(f'# {line}' + '\n')
 
     def add_comments(self, *args):
         for arg in args:
@@ -74,7 +74,7 @@ class GenDoc():
         if not caller:
             caller = getframeinfo(stack()[1][0])
         if not isinstance(resource, dict):
-            raise IOError('Only expecting dict; received: ' + type(resource))
+            raise IOError(f'Only expecting dict; received: {type(resource)}')
         if comment:
             self.add_comments(comment)
         self.who[len(self.resources)] = f'{os.path.basename(caller.filename)}'
@@ -94,7 +94,11 @@ class GenDoc():
             self.stream = open(self.filename_or_stream, mode='w+', encoding='utf-8')
             self.stream.write("##################################################################################\n")
             self.stream.write('#                                DO NOT EDIT\n')
-            self.stream.write('# File generated during execution of: ' + os.path.basename(sys.argv[0]) + '\n')
+            self.stream.write(
+                f'# File generated during execution of: {os.path.basename(sys.argv[0])}'
+                + '\n'
+            )
+
             self.stream.write("##################################################################################\n\n\n")
             self.owns_file = True
         else:
@@ -114,8 +118,7 @@ class GenDoc():
             self.stream.write("#---------------------------------------------------------------------------------\n")
             self.stream.write(f'# {self.who.get(i)} added the following resource\n')
             self.stream.write("#---------------------------------------------------------------------------------\n\n")
-            comments = self.comments.get(i, None)
-            if comments:
+            if comments := self.comments.get(i, None):
                 self.stream.writelines(comments)
             yaml.safe_dump(res, self.stream, default_flow_style=False, width=float("inf"))
 
